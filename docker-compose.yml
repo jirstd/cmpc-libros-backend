@@ -1,0 +1,53 @@
+services:
+  db:
+    image: postgres:15
+    container_name: cmpc_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: cmpc_libros
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - cmpc-net
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cmpc_backend
+    restart: always
+    ports:
+      - '3000:3000'
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - seeder
+    networks:
+      - cmpc-net
+    command: node dist/src/main
+
+  seeder:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cmpc_seeder
+    depends_on:
+      - db
+    env_file:
+      - .env
+    networks:
+      - cmpc-net
+    command: node dist/src/database/seeders/seed.ts
+    restart: "no"
+
+volumes:
+  pgdata:
+
+networks:
+  cmpc-net:
+    driver: bridge
