@@ -56,4 +56,7 @@ export class Libro extends Model<Libro, LibroCreationAttrs> {
 
   @Column({ type: DataType.DATE })
   deleted_at: Date;
+
+  @Column({ type: DataType.STRING, allowNull: true })
+  imagen: string;
 }

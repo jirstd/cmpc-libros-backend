@@ -42,6 +42,10 @@ Esto levantará:
 - 🗄 PostgreSQL en `localhost:5432`
 - 🌐 Backend en `localhost:3000`
 
+Usario de prueba:
+- email: admin@cmpc.com;
+- password: admin123;
+
 ---
 
 ### 🔐 Variables de entorno

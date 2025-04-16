@@ -11,6 +11,8 @@ import { Genero } from './database/models/genero.model';
 import { Editorial } from './database/models/editorial.model';
 import { AuthModule } from './auth/auth.module';
 import { BooksModule } from './books/books.module';
+import { GenresModule } from './genres/genres.module';
+import { PublishersModule } from './publishers/publishers.module';
 
 @Module({
   imports: [
@@ -29,6 +31,8 @@ import { BooksModule } from './books/books.module';
 
     AuthModule,
     BooksModule,
+    GenresModule,
+    PublishersModule,
 
     // Aquí irán los módulos funcionales: AuthModule, UsersModule, etc.
   ],

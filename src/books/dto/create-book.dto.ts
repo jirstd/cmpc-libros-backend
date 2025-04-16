@@ -39,4 +39,12 @@ export class CreateBookDto {
   @ApiProperty({ example: true, description: 'Disponibilidad en stock' })
   @IsBoolean()
   disponible: boolean;
+
+  @IsString()
+  @ApiProperty({
+    example: '/uploads/libros/uuid.jpg',
+    description: 'Ruta de la imagen',
+    required: false,
+  })
+  imagen?: string;
 }

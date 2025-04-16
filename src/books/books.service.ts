@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/sequelize';
 import { Libro } from '../database/models/libro.model';
 import { CreateBookDto } from './dto/create-book.dto';
 import { UpdateBookDto } from './dto/update-book.dto';
-import { Op } from 'sequelize';
+import { Op, WhereOptions, literal } from 'sequelize';
 import { Parser as Json2csvParser } from 'json2csv';
 
 @Injectable()
@@ -13,16 +13,61 @@ export class BooksService {
     private readonly libroModel: typeof Libro,
   ) {}
 
-  async findAll(): Promise<Libro[]> {
-    return this.libroModel.findAll({
+  async findAll(options: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    sortBy?: string;
+    sortDir?: 'asc' | 'desc';
+  }): Promise<{ rows: Libro[]; count: number }> {
+    const {
+      page = 1,
+      limit = 10,
+      search = '',
+      sortBy = 'titulo',
+      sortDir = 'asc',
+    } = options;
+    const offset = (page - 1) * limit;
+
+    const whereClause: WhereOptions = {
+      deleted_at: { [Op.is]: null },
+    };
+
+    const conditions: any[] = [
+      { titulo: { [Op.iLike]: `%${search}%` } },
+      { autor: { [Op.iLike]: `%${search}%` } },
+      { '$genero.nombre$': { [Op.iLike]: `%${search}%` } },
+      { '$editorial.nombre$': { [Op.iLike]: `%${search}%` } },
+      literal(`CAST("Libro"."disponible" AS TEXT) ILIKE '%${search}%'`),
+    ];
+
+    (whereClause as WhereOptions)[Op.or] = conditions;
+
+    const result = await this.libroModel.findAndCountAll({
+      where: whereClause,
       include: ['editorial', 'genero'],
-      where: {
-        deleted_at: {
-          [Op.is]: null,
-        } as any,
-      },
+      offset,
+      limit,
+      order: [[sortBy, sortDir]],
+      subQuery: false,
     });
+
+    return {
+      rows: result.rows,
+      count: result.count,
+    };
   }
+
+  // async findAll(): Promise<Libro[]> {
+  //   return this.libroModel.findAll({
+  //     include: ['editorial', 'genero'],
+  //     where: {
+  //       deleted_at: {
+  //         [Op.is]: null,
+  //       } as any,
+  //     },
+  //   });
+  // }
 
   async findOne(id: string): Promise<Libro> {
     const libro = await this.libroModel.findByPk(id, {

@@ -6,9 +6,20 @@ import { runSeed } from './database/seeders/seed';
 import { Sequelize } from 'sequelize-typescript';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
+import { join } from 'path';
+import { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  app.enableCors({
+    origin: 'http://localhost:5173',
+    credentials: true,
+  });
+
+  app.useStaticAssets(join(__dirname, '..', 'uploads'), {
+    prefix: '/uploads/',
+  });
 
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }),
@@ -28,7 +39,7 @@ async function bootstrap() {
 
   const sequelize = app.get(Sequelize);
   if (process.env.NODE_ENV !== 'production') {
-    await runSeed(sequelize);
+    void runSeed(sequelize);
     console.log('📦 Base de datos poblada con datos dummy');
   }
 

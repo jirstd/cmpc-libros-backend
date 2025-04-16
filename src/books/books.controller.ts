@@ -8,7 +8,14 @@ import {
   Body,
   UseGuards,
   Res,
+  Query,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import * as path from 'path';
+import { v4 as uuidv4 } from 'uuid';
 import { Response } from 'express';
 import { BooksService } from './books.service';
 import { CreateBookDto } from './dto/create-book.dto';
@@ -42,11 +49,33 @@ export class BooksController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Listar todos los libros disponibles' })
-  @ApiResponse({ status: 200, description: 'Lista de libros' })
-  findAll() {
-    return this.booksService.findAll();
+  @ApiOperation({
+    summary: 'Listar libros con filtros, paginación y ordenamiento',
+  })
+  @ApiResponse({ status: 200, description: 'Lista de libros paginada' })
+  findAll(
+    @Query('page') page: string,
+    @Query('limit') limit: string,
+    @Query('search') rawSearch: string,
+    @Query('sort_by') sortBy: string,
+    @Query('sort_dir') sortDir: 'asc' | 'desc',
+  ) {
+    const search = rawSearch?.replace(/^'+|'+$/g, '').trim() || '';
+    return this.booksService.findAll({
+      page: parseInt(page) || 1,
+      limit: parseInt(limit) || 10,
+      search,
+      sortBy,
+      sortDir,
+    });
   }
+
+  // @Get()
+  // @ApiOperation({ summary: 'Listar todos los libros disponibles' })
+  // @ApiResponse({ status: 200, description: 'Lista de libros' })
+  // findAll() {
+  //   return this.booksService.findAll();
+  // }
 
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un libro por ID' })
@@ -55,12 +84,61 @@ export class BooksController {
     return this.booksService.findOne(id);
   }
 
+  // @Post()
+  // @ApiOperation({ summary: 'Crear un nuevo libro' })
+  // @ApiResponse({ status: 201, description: 'Libro creado' })
+  // create(@Body() dto: CreateBookDto) {
+  //   return this.booksService.create(dto);
+  // }
+
   @Post()
-  @ApiOperation({ summary: 'Crear un nuevo libro' })
+  @UseInterceptors(
+    FileInterceptor('imagen', {
+      storage: diskStorage({
+        destination: './uploads/libros',
+        filename: (_req, file, cb) => {
+          const ext = path.extname(file.originalname);
+          const filename = `${uuidv4()}${ext}`;
+          cb(null, filename);
+        },
+      }),
+    }),
+  )
+  @ApiOperation({ summary: 'Crear un nuevo libro con imagen' })
   @ApiResponse({ status: 201, description: 'Libro creado' })
-  create(@Body() dto: CreateBookDto) {
+  async create(
+    @UploadedFile() imagen: Express.Multer.File,
+    @Body() dto: CreateBookDto,
+  ) {
+    if (imagen) {
+      dto.imagen = `/uploads/libros/${imagen.filename}`;
+    }
     return this.booksService.create(dto);
   }
+
+  // @Post()
+  // @UseInterceptors(
+  //   FileInterceptor('imagen',
+  //   {
+  //     storage: diskStorage({
+  //       destination: './uploads/libros',
+  //       filename: (_req, file, cb) => {
+  //         const ext = path.extname(file.originalname);
+  //         const filename = `${uuidv4()}${ext}`;
+  //         cb(null, filename);
+  //       },
+  //     }),
+  //   }),
+  // )
+  // async create(
+  //   @UploadedFile() imagen: Express.Multer.File,
+  //   @Body() dto: CreateBookDto,
+  // ) {
+  //   if (imagen) {
+  //     dto.imagen = `/uploads/libros/${imagen.filename}`;
+  //   }
+  //   return this.booksService.create(dto);
+  // }
 
   @Put(':id')
   @ApiOperation({ summary: 'Actualizar un libro' })
