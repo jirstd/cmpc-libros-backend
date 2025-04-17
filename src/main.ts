@@ -6,7 +6,6 @@ import { runSeed } from './database/seeders/seed';
 import { Sequelize } from 'sequelize-typescript';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
-import { join } from 'path';
 import { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {
@@ -15,10 +14,6 @@ async function bootstrap() {
   app.enableCors({
     origin: 'http://localhost:5173',
     credentials: true,
-  });
-
-  app.useStaticAssets(join(__dirname, '..', 'uploads'), {
-    prefix: '/uploads/',
   });
 
   app.useGlobalPipes(
