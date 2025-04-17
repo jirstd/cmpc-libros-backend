@@ -13,9 +13,10 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import * as path from 'path';
-import { v4 as uuidv4 } from 'uuid';
+import { multerConfig } from '../config/multer.config';
+// import { diskStorage } from 'multer';
+// import * as path from 'path';
+// import { v4 as uuidv4 } from 'uuid';
 import { Response } from 'express';
 import { BooksService } from './books.service';
 import { CreateBookDto } from './dto/create-book.dto';
@@ -26,7 +27,8 @@ import {
   ApiTags,
   ApiOperation,
   ApiResponse,
-  ApiProduces,
+  ApiConsumes,
+  ApiBody,
 } from '@nestjs/swagger';
 
 @ApiTags('Books')
@@ -39,10 +41,8 @@ export class BooksController {
   @Get('export')
   @ApiOperation({ summary: 'Exportar libros en formato CSV' })
   @ApiResponse({ status: 200, description: 'Archivo CSV generado' })
-  @ApiProduces('text/csv')
   async exportCsv(@Res() res: Response) {
     const csv = await this.booksService.exportCsv();
-
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename=libros.csv');
     res.status(200).send(csv);
@@ -62,20 +62,13 @@ export class BooksController {
   ) {
     const search = rawSearch?.replace(/^'+|'+$/g, '').trim() || '';
     return this.booksService.findAll({
-      page: parseInt(page) || 1,
-      limit: parseInt(limit) || 10,
+      page: parseInt(page, 10) || 1,
+      limit: parseInt(limit, 10) || 10,
       search,
       sortBy,
       sortDir,
     });
   }
-
-  // @Get()
-  // @ApiOperation({ summary: 'Listar todos los libros disponibles' })
-  // @ApiResponse({ status: 200, description: 'Lista de libros' })
-  // findAll() {
-  //   return this.booksService.findAll();
-  // }
 
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un libro por ID' })
@@ -85,41 +78,8 @@ export class BooksController {
   }
 
   // @Post()
-  // @ApiOperation({ summary: 'Crear un nuevo libro' })
-  // @ApiResponse({ status: 201, description: 'Libro creado' })
-  // create(@Body() dto: CreateBookDto) {
-  //   return this.booksService.create(dto);
-  // }
-
-  @Post()
-  @UseInterceptors(
-    FileInterceptor('imagen', {
-      storage: diskStorage({
-        destination: './uploads/libros',
-        filename: (_req, file, cb) => {
-          const ext = path.extname(file.originalname);
-          const filename = `${uuidv4()}${ext}`;
-          cb(null, filename);
-        },
-      }),
-    }),
-  )
-  @ApiOperation({ summary: 'Crear un nuevo libro con imagen' })
-  @ApiResponse({ status: 201, description: 'Libro creado' })
-  async create(
-    @UploadedFile() imagen: Express.Multer.File,
-    @Body() dto: CreateBookDto,
-  ) {
-    if (imagen) {
-      dto.imagen = `/uploads/libros/${imagen.filename}`;
-    }
-    return this.booksService.create(dto);
-  }
-
-  // @Post()
   // @UseInterceptors(
-  //   FileInterceptor('imagen',
-  //   {
+  //   FileInterceptor('imagen', {
   //     storage: diskStorage({
   //       destination: './uploads/libros',
   //       filename: (_req, file, cb) => {
@@ -130,15 +90,82 @@ export class BooksController {
   //     }),
   //   }),
   // )
+  // @ApiConsumes('multipart/form-data')
+  // @ApiOperation({ summary: 'Crear un nuevo libro con imagen' })
+  // @ApiResponse({ status: 201, description: 'Libro creado' })
+  // @ApiBody({
+  //   description: 'Datos del libro',
+  //   schema: {
+  //     type: 'object',
+  //     properties: {
+  //       titulo: { type: 'string' },
+  //       autor: { type: 'string' },
+  //       genero_id: { type: 'string', format: 'uuid' },
+  //       editorial_id: { type: 'string', format: 'uuid' },
+  //       precio: { type: 'number' },
+  //       disponible: { type: 'boolean' },
+  //       imagen: {
+  //         type: 'string',
+  //         format: 'binary',
+  //       },
+  //     },
+  //     required: [
+  //       'titulo',
+  //       'autor',
+  //       'genero_id',
+  //       'editorial_id',
+  //       'precio',
+  //       'disponible',
+  //     ],
+  //   },
+  // })
   // async create(
   //   @UploadedFile() imagen: Express.Multer.File,
-  //   @Body() dto: CreateBookDto,
+  //   @Body() dto: CreateBookDto & { imagen?: string },
   // ) {
   //   if (imagen) {
   //     dto.imagen = `/uploads/libros/${imagen.filename}`;
   //   }
   //   return this.booksService.create(dto);
   // }
+
+  @Post()
+  @UseInterceptors(FileInterceptor('imagen', multerConfig))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Crear un nuevo libro con imagen' })
+  @ApiResponse({ status: 201, description: 'Libro creado' })
+  @ApiBody({
+    description: 'Datos del libro con imagen',
+    schema: {
+      type: 'object',
+      properties: {
+        titulo: { type: 'string' },
+        autor: { type: 'string' },
+        genero_id: { type: 'string', format: 'uuid' },
+        editorial_id: { type: 'string', format: 'uuid' },
+        precio: { type: 'number' },
+        disponible: { type: 'boolean' },
+        imagen: { type: 'string', format: 'binary' },
+      },
+    },
+  })
+  async create(
+    @UploadedFile() imagen: Express.Multer.File,
+    @Body() dto: CreateBookDto & { imagen?: string },
+  ) {
+    if (imagen) {
+      dto.imagen = `/uploads/libros/${imagen.filename}`;
+    }
+    if (dto.precio) {
+      dto.precio = Number(dto.precio);
+    }
+    if (dto.disponible !== undefined) {
+      if (typeof dto.disponible === 'string') {
+        dto.disponible = dto.disponible === 'true';
+      }
+    }
+    return this.booksService.create(dto);
+  }
 
   @Put(':id')
   @ApiOperation({ summary: 'Actualizar un libro' })

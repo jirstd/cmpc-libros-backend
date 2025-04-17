@@ -21,7 +21,7 @@ services:
     container_name: cmpc_backend
     volumes:
       - .:/app
-      - ./uploads:/app/uploads
+      - .:/app/src/uploads
     restart: always
     ports:
       - '3000:3000'
