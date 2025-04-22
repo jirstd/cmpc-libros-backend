@@ -53,12 +53,11 @@ Usario de prueba:
 Las siguientes se definen en el archivo `.env`:
 
 ```env
-DB_HOST=db
+DB_HOST=localhost
 DB_PORT=5432
-DB_USERNAME=postgres
+DB_USER=postgres
 DB_PASSWORD=postgres
-DB_DATABASE=cmpc_libros
-
+DB_NAME=cmpc_libros
 JWT_SECRET=supersecreto
 JWT_EXPIRES_IN=1d
 ```
@@ -81,9 +80,14 @@ npm run test -- --coverage
 ```bash
 # Desarrollo local sin Docker
 npm install
+
+# Levan Base de daots
+docker run --name cmpc-db -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=cmpc_libros -p 5432:5432 -d postgres:15
+
+# Iniciar entorno local
 npm run start:dev
 
-# Ejecutar seeders manualmente
+# Ejecutar seeders manualmente solo si es necesario
 npx ts-node src/database/seeders/seed.ts
 ```
 

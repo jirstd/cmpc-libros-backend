@@ -30,6 +30,8 @@ services:
     depends_on:
       - db
       - seeder
+    environment:
+      DB_HOST: db
     networks:
       - cmpc-net
     command: node dist/src/main
